@@ -23,6 +23,7 @@ export const initSockets = (server) => {
     registerMessageSocketHandlers({
       emitMessageEvent: (userId, message) => emitToUser(userId, "message:new", message),
       emitTypingEvent: (userId, payload) => emitToUser(userId, "message:typing", payload),
+      emitDeleteEvent: (userId, payload) => emitToUser(userId, "message:delete", payload),
       isUserOnline,
     })(socket);
   });

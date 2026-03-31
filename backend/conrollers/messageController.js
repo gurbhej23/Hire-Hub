@@ -4,6 +4,7 @@ import User from "../models/User.js";
 
 let emitMessageEvent = null;
 let emitTypingEvent = null;
+let emitDeleteEvent = null;
 let isSocketUserOnline = null;
 
 const populateMessageById = async (messageId) =>
@@ -14,10 +15,12 @@ const populateMessageById = async (messageId) =>
 export const registerMessageSocketHandlers = ({
   emitMessageEvent: nextEmitMessageEvent,
   emitTypingEvent: nextEmitTypingEvent,
+  emitDeleteEvent: nextEmitDeleteEvent,
   isUserOnline,
 }) => {
   emitMessageEvent = nextEmitMessageEvent;
   emitTypingEvent = nextEmitTypingEvent;
+  emitDeleteEvent = nextEmitDeleteEvent;
   isSocketUserOnline = isUserOnline;
 
   return (socket) => {
@@ -26,7 +29,7 @@ export const registerMessageSocketHandlers = ({
 
     // Typing indicator
     socket.on("message:typing", ({ recipientId, isTyping }) => {
-      emitTypingEvent(recipientId, { senderId: userId, isTyping });
+      emitTypingEvent(recipientId, { userId, isTyping });
     });
 
     // Sending a new message
@@ -233,6 +236,11 @@ export const updateMessage = async (req, res) => {
       .populate("sender", "name email profileImage lastSeen")
       .populate("recipient", "name email profileImage lastSeen");
 
+    if (emitMessageEvent) {
+      emitMessageEvent(message.sender.toString(), populatedMessage);
+      emitMessageEvent(message.recipient.toString(), populatedMessage);
+    }
+
     return res.json(populatedMessage);
   } catch (error) {
     return res.status(500).json({ message: error.message || "Unable to update message" });
@@ -253,6 +261,18 @@ export const deleteMessage = async (req, res) => {
     }
 
     await message.deleteOne();
+
+    if (emitDeleteEvent) {
+      const payload = {
+        messageId,
+        senderId: message.sender.toString(),
+        recipientId: message.recipient.toString(),
+      };
+
+      emitDeleteEvent(message.sender.toString(), payload);
+      emitDeleteEvent(message.recipient.toString(), payload);
+    }
+
     return res.json({ message: "Message deleted", messageId });
   } catch (error) {
     return res.status(500).json({ message: error.message || "Unable to delete message" });
