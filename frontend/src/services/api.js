@@ -7,7 +7,7 @@ const apiHost =
     : hostname;
 
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || `http://${apiHost}:5000/api`,
+  baseURL: process.env.REACT_APP_API_URL || `https://hire-hub-e11k.onrender.com/api`,
 });
 
 // Add JWT token automatically if exists
