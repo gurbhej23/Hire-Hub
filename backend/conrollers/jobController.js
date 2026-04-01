@@ -30,6 +30,21 @@ const toggleIdInArray = (arr, id) => {
   return [...arr, id];
 };
 
+const buildDashboardNotificationLink = (jobId, commentId = "", replyId = "") => {
+  const params = new URLSearchParams();
+  params.set("post", jobId?.toString() || "");
+
+  if (commentId) {
+    params.set("comment", commentId.toString());
+  }
+
+  if (replyId) {
+    params.set("reply", replyId.toString());
+  }
+
+  return `/dashboard?${params.toString()}`;
+};
+
 export const getJobs = async (req, res) => {
   try {
     const jobs = await populateJobQuery(Job.find())
@@ -147,7 +162,7 @@ export const toggleJobLike = async (req, res) => {
         actor: req.user._id,
         type: "post_like",
         message: `${req.user.name} liked your post`,
-        link: "/dashboard",
+        link: buildDashboardNotificationLink(job._id),
         entityId: job._id.toString(),
       });
     }
@@ -185,7 +200,7 @@ export const addComment = async (req, res) => {
       actor: req.user._id,
       type: "post_comment",
       message: `${req.user.name} commented on your post`,
-      link: "/dashboard",
+      link: buildDashboardNotificationLink(job._id, job.comments[job.comments.length - 1]?._id),
       entityId: job._id.toString(),
     });
 
@@ -271,7 +286,7 @@ export const toggleCommentLike = async (req, res) => {
         actor: req.user._id,
         type: "comment_like",
         message: `${req.user.name} liked your comment`,
-        link: "/dashboard",
+        link: buildDashboardNotificationLink(job._id, comment._id),
         entityId: comment._id.toString(),
       });
     }
@@ -309,7 +324,11 @@ export const addReply = async (req, res) => {
       actor: req.user._id,
       type: "comment_reply",
       message: `${req.user.name} replied to your comment`,
-      link: "/dashboard",
+      link: buildDashboardNotificationLink(
+        job._id,
+        comment._id,
+        comment.replies[comment.replies.length - 1]?._id
+      ),
       entityId: comment._id.toString(),
     });
 
@@ -398,7 +417,7 @@ export const toggleReplyLike = async (req, res) => {
         actor: req.user._id,
         type: "reply_like",
         message: `${req.user.name} liked your reply`,
-        link: "/dashboard",
+        link: buildDashboardNotificationLink(job._id, comment._id, reply._id),
         entityId: reply._id.toString(),
       });
     }
@@ -438,7 +457,7 @@ export const toggleRepost = async (req, res) => {
         actor: req.user._id,
         type: "post_repost",
         message: `${req.user.name} reposted your post`,
-        link: "/dashboard",
+        link: buildDashboardNotificationLink(job._id),
         entityId: job._id.toString(),
       });
     }

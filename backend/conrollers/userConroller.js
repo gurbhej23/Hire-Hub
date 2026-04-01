@@ -3,6 +3,8 @@ import Job from "../models/Job.js";
 import User from "../models/User.js";
 import { deleteNotification, upsertNotification } from "../utils/notificationHelpers.js";
 
+const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const buildUserResponse = async (userId) => {
   const user = await User.findById(userId)
     .select("-password -resetPasswordToken -resetPasswordExpires");
@@ -53,11 +55,7 @@ export const searchUsers = async (req, res) => {
     const search = req.query.search?.trim();
     const query = search
       ? {
-          $or: [
-            { name: { $regex: search, $options: "i" } },
-            { email: { $regex: search, $options: "i" } },
-            { role: { $regex: search, $options: "i" } },
-          ],
+          name: { $regex: `^${escapeRegex(search)}`, $options: "i" },
         }
       : {};
 

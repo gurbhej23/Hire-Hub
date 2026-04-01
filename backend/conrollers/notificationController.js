@@ -62,3 +62,24 @@ export const deleteAllNotifications = async (req, res) => {
     return res.status(500).json({ message: error.message || "Unable to delete notifications" });
   }
 };
+
+export const deleteNotification = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid notification id" });
+    }
+
+    const notification = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      recipient: req.user._id,
+    });
+
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    return res.json({ message: "Notification deleted" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Unable to delete notification" });
+  }
+};

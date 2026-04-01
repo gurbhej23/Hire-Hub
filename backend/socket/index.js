@@ -4,7 +4,13 @@ import { registerPresenceHandlers } from "./presence.js";
 import { registerMessageSocketHandlers } from "../conrollers/messageController.js";
 
 export const initSockets = (server) => {
-  const io = new Server(server, { cors: { origin: true } });
+  const io = new Server(server,
+    {
+      cors:
+      {
+        origin: true
+      }
+    });
   const onlineUsers = new Map();
   const emitToUser = (userId, event, payload) => {
     (onlineUsers.get(userId) || []).forEach((sid) => io.to(sid).emit(event, payload));
