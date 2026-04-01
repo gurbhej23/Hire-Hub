@@ -15,8 +15,10 @@ const app = express();
 const server = http.createServer(app);
 const allowedOrigins = [
   "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:5174",
   "http://192.168.29.41:3000",
-  process.env.FRONTEND_URL,
+  process.env.VITE_API_URL,
 ].filter(Boolean);
 const corsOptions = {
   origin: (origin, callback) => {
