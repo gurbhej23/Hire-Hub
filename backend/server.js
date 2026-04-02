@@ -18,8 +18,10 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://192.168.29.41:3000",
-  process.env.VITE_API_URL,
+  "https://hire-hub-blush.vercel.app",
+  "https://hire-hub-e11k.onrender.com",
 ].filter(Boolean);
+
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
