@@ -246,7 +246,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 5vw;
     padding: 2px 14px;
     border-radius: 999px; 
     position: static;
@@ -259,14 +259,18 @@
   }
 
   .Navbar-List li > button {
-    width: 42px;
-    height: 42px;
+    width: 5vw;
+    /* height: 42px; */
     display: inline-flex;
     justify-content: center;
     align-items: center;
     padding: 0;
     border-radius: 50%;
     color: #5f6e67;
+  }
+
+  .Navbar-List li svg{
+    height: 5vw;
   }
 
   .Navbar-List li > button:hover {
@@ -276,19 +280,19 @@
     box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
   }
 
-  .Navbar-List li:last-child {
+  /* .Navbar-List li:last-child {
     display: none;
-  }
+  } */
 
   .notification-panel {
     width: min(92vw, 360px);
     padding: 7px;
     top: calc(100% + 10px);
-    right: -18px;
+    right: -110px;
   }
 
   .people-panel {
-    width: min(92vw, 320px);
+    width: min(92vw, 270px);
   }
 }
  

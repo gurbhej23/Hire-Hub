@@ -1,6 +1,5 @@
 import {
-  Building2,
-  MapPin,
+  Building2, 
   MessageSquareMore,
   Pencil,
   UserPlus,
@@ -77,11 +76,10 @@ const ProfileHeroCard = ({
             <>
               <button className="edit-Btn profile-action-btn profile-action-primary" onClick={onToggleFollow}>
                 {following.includes(user._id) ? <UserRoundCheck size={18} /> : <UserPlus size={18} />}
-                {following.includes(user._id) ? "Following" : "Follow"}
+                {/* {following.includes(user._id) ? "Following" : "Follow"} */}
               </button>
               <button className="edit-Btn profile-action-btn profile-action-secondary" onClick={onMessage}>
-                <MessageSquareMore size={18} />
-                Message
+                <MessageSquareMore size={18} /> 
               </button>
             </>
           ) : null}

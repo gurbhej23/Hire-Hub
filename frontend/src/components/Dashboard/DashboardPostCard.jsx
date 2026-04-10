@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import API from "../../services/api";
 
 const ActionIcon = ({ children }) => (
@@ -14,29 +15,30 @@ const DashboardPostCard = ({
   now,
   renderAvatar,
   getRelativePostTime,
-  onOpenProfile = () => { },
-  onEdit = () => { },
-  onDelete = () => { },
-  onLike = () => { },
-  onComment = () => { },
-  onCommentEdit = () => { },
-  onCommentDelete = () => { },
-  onCommentLike = () => { },
-  onCommentReply = () => { },
-  onReplyLike = () => { },
-  onReplyEdit = () => { },
-  onReplyDelete = () => { },
-  onRepost = () => { },
-  onShare = () => { },
-  onMessageUser = () => { },
-  onToggleFollow = () => { },
+  onOpenProfile = () => {},
+  onEdit = () => {},
+  onDelete = () => {},
+  onLike = () => {},
+  onComment = () => {},
+  onCommentEdit = () => {},
+  onCommentDelete = () => {},
+  onCommentLike = () => {},
+  onCommentReply = () => {},
+  onReplyLike = () => {},
+  onReplyEdit = () => {},
+  onReplyDelete = () => {},
+  onRepost = () => {},
+  onMessageUser = () => {},
+  onToggleFollow = () => {},
+  onOpenPost = () => {},
   followingIds = [],
   showOwnerActions = true,
   forceOpenComments = false,
   highlightedCommentId = "",
   highlightedReplyId = "",
+  repostTargetId = "",
 }) => {
-  const [isCommentOpen, setIsCommentOpen] = useState(false);
+  const [isCommentOpen, setIsCommentOpen] = useState(forceOpenComments);
   const [commentText, setCommentText] = useState("");
   const [activeCommentMenuId, setActiveCommentMenuId] = useState("");
   const [editingCommentId, setEditingCommentId] = useState("");
@@ -46,6 +48,8 @@ const DashboardPostCard = ({
   const [activeReplyMenuId, setActiveReplyMenuId] = useState("");
   const [editingReplyId, setEditingReplyId] = useState("");
   const [editingReplyText, setEditingReplyText] = useState("");
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [activeMenu, setActiveMenu] = useState(null);
   const [likeViewer, setLikeViewer] = useState({
     isOpen: false,
     title: "",
@@ -54,11 +58,11 @@ const DashboardPostCard = ({
   });
 
   useEffect(() => {
-    if (forceOpenComments) {
-      setIsCommentOpen(true);
-    }
-  }, [forceOpenComments]);
+    const closeMenu = () => setActiveMenu(null);
+    window.addEventListener("click", closeMenu);
 
+    return () => window.removeEventListener("click", closeMenu);
+  }, []);
   if (!job) return null;
 
   const displayJob = job.repostOf || job;
@@ -67,13 +71,31 @@ const DashboardPostCard = ({
   const likeCount = actionJob.likes?.length || 0;
   const commentCount = actionJob.comments?.length || 0;
   const repostCount = actionJob.reposts?.length || 0;
-  const isLiked = (actionJob.likes || []).some((id) => id?.toString() === currentUserId);
-  const isReposted = (actionJob.reposts || []).some((id) => id?.toString() === currentUserId);
+  const isLiked = (actionJob.likes || []).some(
+    (id) => id?.toString() === currentUserId,
+  );
+  const isReposted = (actionJob.reposts || []).some(
+    (id) => id?.toString() === currentUserId,
+  );
+  const postOwnerId = displayJob.postedBy?._id?.toString() || "";
+  const isOwnDisplayedPost = postOwnerId === currentUserId;
+  const canDeletePost =
+    job.postedBy?._id?.toString() === currentUserId ||
+    displayJob.postedBy?._id?.toString() === currentUserId;
+  const isFollowingPostUser = followingIds.some(
+    (id) => id?.toString() === postOwnerId,
+  );
+  const viewRepostId =
+    repostTargetId || (isRepostCard ? job._id?.toString() || "" : "");
   const knownUsers = collectKnownUsers();
   const connectedUserIds = new Set(
-    [...(followingIds || []), ...(currentUser?.followers || []), ...(currentUser?.following || [])]
+    [
+      ...(followingIds || []),
+      ...(currentUser?.followers || []),
+      ...(currentUser?.following || []),
+    ]
       .map((id) => id?.toString())
-      .filter((id) => id && id !== currentUserId)
+      .filter((id) => id && id !== currentUserId),
   );
 
   const getSocialProofUsers = (ids = []) => {
@@ -95,7 +117,7 @@ const DashboardPostCard = ({
     (actionJob.comments || []).flatMap((comment) => [
       comment.user?._id,
       ...((comment.replies || []).map((reply) => reply.user?._id) || []),
-    ])
+    ]),
   );
 
   const getProofText = (users = [], actionLabel = "liked this") => {
@@ -104,13 +126,15 @@ const DashboardPostCard = ({
     return `${users[0].name} and ${users.length - 1} other${users.length > 2 ? "s" : ""} ${actionLabel}`;
   };
 
-  const connectedLikeMap = new Map(connectedLikers.map((user) => [user._id, user]));
+  const connectedLikeMap = new Map(
+    connectedLikers.map((user) => [user._id, user]),
+  );
   const overlappingProofUsers = connectedCommenters.filter((user) =>
-    connectedLikeMap.has(user._id)
+    connectedLikeMap.has(user._id),
   );
   const overlappingProofText = getProofText(
     overlappingProofUsers,
-    "liked and commented on this"
+    "liked and commented on this",
   );
   const likeProofText = overlappingProofUsers.length
     ? ""
@@ -188,7 +212,7 @@ const DashboardPostCard = ({
             profileImage: user.profileImage || "",
             role: user.role || "",
           };
-        } catch (error) {
+        } catch {
           return {
             _id: userId,
             name: "Unknown user",
@@ -196,7 +220,7 @@ const DashboardPostCard = ({
             role: "",
           };
         }
-      })
+      }),
     );
 
     setLikeViewer((prev) => ({
@@ -243,70 +267,138 @@ const DashboardPostCard = ({
   return (
     <>
       <div className="job-card">
-        <div style={{"padding":"0.8rem"}}>
+        <div>
           {isRepostCard ? (
             <div className="repost-banner">
-              {job.postedBy?.name || "Someone"} reposted this
+              <span>{job.postedBy?.name || "Someone"} reposted this</span>
+              <button
+                type="button"
+                className="repost-link-btn"
+                onClick={() => onOpenPost(job._id)}
+              >
+                View reposted
+              </button>
             </div>
           ) : null}
-          {overlappingProofText || likeProofText || commentProofText ? (
-            <div className="post-social-proof">
-              {overlappingProofText ? (
-                <div className="post-social-proof-item">{overlappingProofText}</div>
-              ) : null}
-              {likeProofText ? <div className="post-social-proof-item">{likeProofText}</div> : null}
-              {commentProofText ? (
-                <div className="post-social-proof-item">{commentProofText}</div>
-              ) : null}
-            </div>
-          ) : null}
-          <div className="job-card-header">
-            <button
-              type="button"
-              className="job-card-profile"
-              onClick={() => onOpenProfile(displayJob.postedBy?._id)}
-            >
-              {renderAvatar(
-                displayJob.postedBy?.name || "Unknown",
-                displayJob.postedBy?.profileImage,
-                "job-card-avatar"
-              )}
-              <div className="job-card-copy">
-                <div className="job-title">{displayJob.postedBy?.name || "Unknown"}</div>
-                <div className="job-card-role">
-                  {displayJob.postedBy?._id?.toString() === currentUserId
-                    ? currentUser?.role || "HireHub member"
-                    : "HireHub member"}
-                </div>
-                <div className="job-card-meta">
-                  {getRelativePostTime(job.createdAt || job.updatedAt, now)}
-                </div>
+          <div className="post-header">
+            {overlappingProofText || likeProofText || commentProofText ? (
+              <div className="post-social-proof">
+                {overlappingProofText ? (
+                  <div className="post-social-proof-item">
+                    {overlappingProofText}
+                  </div>
+                ) : null}
+                {likeProofText ? (
+                  <div className="post-social-proof-item">{likeProofText}</div>
+                ) : null}
+                {commentProofText ? (
+                  <div className="post-social-proof-item">
+                    {commentProofText}
+                  </div>
+                ) : null}
               </div>
-            </button>
-            <div className="job-card-tools">
-              {showOwnerActions &&
-                !isRepostCard &&
-                job.postedBy?._id?.toString() === currentUserId ? (
-                <>
-                  <button
-                    type="button"
-                    className="job-tool-btn"
-                    onClick={() => onEdit(job)}
+            ) : null}
+            <div className="job-card-header">
+              <button
+                type="button"
+                className="job-card-profile"
+                onClick={() => onOpenProfile(displayJob.postedBy?._id)}
+              >
+                {renderAvatar(
+                  displayJob.postedBy?.name || "Unknown",
+                  displayJob.postedBy?.profileImage,
+                  "job-card-avatar",
+                )}
+                <div className="job-card-copy">
+                  <div className="job-title">
+                    {displayJob.postedBy?.name || "Unknown"}
+                  </div>
+                  <div className="job-card-role">
+                    {displayJob.postedBy?._id?.toString() === currentUserId
+                      ? currentUser?.role || "HireHub member"
+                      : "HireHub member"}
+                  </div>
+                  <div className="job-card-meta">
+                    {getRelativePostTime(job.createdAt || job.updatedAt, now)}
+                  </div>
+                </div>
+              </button>
+              <div className="job-card-tools">
+                {showOwnerActions || !isOwnDisplayedPost ? (
+                  <div
+                    className="menu-container"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="job-tool-btn"
-                    onClick={() => onDelete(job._id)}
-                  >
-                    Delete
-                  </button>
-                </>
-              ) : null}
+                    <button
+                      type="button"
+                      className="job-tool-btn"
+                      aria-label="Post actions"
+                      onClick={() =>
+                        setActiveMenu(activeMenu === job._id ? null : job._id)
+                      }
+                    >
+                      ...
+                    </button>
+                    {activeMenu === job._id ? (
+                      <div className="dropdown">
+                        {showOwnerActions &&
+                        !isRepostCard &&
+                        isOwnDisplayedPost ? (
+                          <button
+                            type="button"
+                            className="dropdown-action"
+                            onClick={() => {
+                              onEdit(job);
+                              setActiveMenu(null);
+                            }}
+                          >
+                            Edit
+                          </button>
+                        ) : null}
+                        {canDeletePost ? (
+                          <button
+                            type="button"
+                            className="dropdown-action"
+                            onClick={() => {
+                              onDelete(job._id);
+                              setActiveMenu(null);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="dropdown-action"
+                          onClick={() => {
+                            onOpenProfile(postOwnerId);
+                            setActiveMenu(null);
+                          }}
+                          disabled={!postOwnerId}
+                        >
+                          See profile
+                        </button>
+                        {!isOwnDisplayedPost ? (
+                          <button
+                            type="button"
+                            className="dropdown-action"
+                            onClick={() => {
+                              onToggleFollow(postOwnerId);
+                              setActiveMenu(null);
+                            }}
+                            disabled={!postOwnerId}
+                          >
+                            {isFollowingPostUser ? "Unfollow" : "Follow"}
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             </div>
+            <div className="job-description-preview">{displayJob.title}</div>
           </div>
-          <div className="job-description-preview">{displayJob.title}</div>
           {displayJob.mediaUrl ? (
             displayJob.mediaType === "video" ? (
               <video
@@ -318,6 +410,7 @@ const DashboardPostCard = ({
               <img
                 className="post-media-preview"
                 src={displayJob.mediaUrl}
+                onClick={() => setSelectedImage(displayJob.mediaUrl)}
                 alt="Post media"
               />
             )
@@ -331,9 +424,15 @@ const DashboardPostCard = ({
                     <button
                       type="button"
                       className="reaction-total reaction-total-btn"
-                      onClick={() => openLikesViewer("People who liked this post", actionJob.likes)}
+                      onClick={() =>
+                        openLikesViewer(
+                          "People who liked this post",
+                          actionJob.likes,
+                        )
+                      }
                     >
                       {likeCount}
+                      {likeCount === 1 ? " Like" : " Likes"}
                     </button>
                   </>
                 ) : null}
@@ -346,7 +445,11 @@ const DashboardPostCard = ({
             </div>
           ) : null}
           <div className="linkedin-actions">
-            <button type="button" className="linkedin-action-btn" onClick={() => onLike(actionJob._id)}>
+            <button
+              type="button"
+              className="linkedin-action-btn"
+              onClick={() => onLike(actionJob._id)}
+            >
               <ActionIcon>
                 <svg viewBox="0 0 24 24" focusable="false">
                   <path
@@ -357,7 +460,11 @@ const DashboardPostCard = ({
               </ActionIcon>
               <span>{isLiked ? `Liked` : `Like`}</span>
             </button>
-            <button type="button" className="linkedin-action-btn" onClick={() => setIsCommentOpen((prev) => !prev)}>
+            <button
+              type="button"
+              className="linkedin-action-btn"
+              onClick={() => setIsCommentOpen((prev) => !prev)}
+            >
               <ActionIcon>
                 <svg viewBox="0 0 24 24" focusable="false">
                   <path d="M4 5h16v10H8l-4 4V5Z" />
@@ -365,7 +472,11 @@ const DashboardPostCard = ({
               </ActionIcon>
               <span>{`Comment`}</span>
             </button>
-            <button type="button" className="linkedin-action-btn" onClick={() => onRepost(job)}>
+            <button
+              type="button"
+              className="linkedin-action-btn"
+              onClick={() => onRepost(job)}
+            >
               <ActionIcon>
                 <svg viewBox="0 0 24 24" focusable="false">
                   <path d="M7 7V3L2 8l5 5V9a6 6 0 0 1 6 6v3h2v-3A8 8 0 0 0 7 7Zm10 4v4a6 6 0 0 1-6 6H9v2h2a8 8 0 0 0 8-8v-4h3l-5-5-5 5h3Z" />
@@ -374,13 +485,25 @@ const DashboardPostCard = ({
               <span>{isReposted ? `Reposted` : `Repost`}</span>
             </button>
           </div>
+          {isReposted && viewRepostId && !isRepostCard ? (
+            <div className="post-repost-status">
+              <span>Reposted</span>
+              <button
+                type="button"
+                className="repost-link-btn"
+                onClick={() => onOpenPost(viewRepostId)}
+              >
+                View reposted
+              </button>
+            </div>
+          ) : null}
           {isCommentOpen ? (
             <div className="post-comments">
               <div className="post-comment-form">
                 {renderAvatar(
                   currentUser?.name || "You",
                   currentUser?.profileImage,
-                  "post-comment-avatar"
+                  "post-comment-avatar",
                 )}
                 <input
                   type="text"
@@ -389,10 +512,18 @@ const DashboardPostCard = ({
                   placeholder="Add a comment..."
                 />
                 <div className="post-comment-form-actions">
-                  <button type="button" className="post-comment-emoji-btn" aria-label="Emoji">
+                  <button
+                    type="button"
+                    className="post-comment-emoji-btn"
+                    aria-label="Emoji"
+                  >
                     ☺
                   </button>
-                  <button type="button" className="post-comment-submit" onClick={submitComment}>
+                  <button
+                    type="button"
+                    className="post-comment-submit"
+                    onClick={submitComment}
+                  >
                     Post
                   </button>
                 </div>
@@ -400,28 +531,53 @@ const DashboardPostCard = ({
               <div className="post-comment-sort">Most relevant</div>
               {(actionJob.comments || []).length ? (
                 <div className="post-comment-list">
-	              {actionJob.comments.map((comment, index) => {
-	                const commentId = comment._id?.toString() || `${index}`;
-	                const isHighlightedComment = highlightedCommentId === commentId;
-	                const commentOwnerId = comment.user?._id?.toString() || "";
+                  {actionJob.comments.map((comment, index) => {
+                    const commentId = comment._id?.toString() || `${index}`;
+                    const isHighlightedComment =
+                      highlightedCommentId === commentId;
+                    const commentOwnerId = comment.user?._id?.toString() || "";
                     const commentTime = getRelativePostTime(
                       comment.createdAt || comment.updatedAt,
-                      now
+                      now,
                     );
                     const isCommentOwner = commentOwnerId === currentUserId;
-                    const isSelfCommentUser = !commentOwnerId || commentOwnerId === currentUserId;
+                    const isSelfCommentUser =
+                      !commentOwnerId || commentOwnerId === currentUserId;
                     const isCommentLiked = (comment.likes || []).some(
-                      (id) => id?.toString() === currentUserId
+                      (id) => id?.toString() === currentUserId,
                     );
                     const isFollowingCommentUser = followingIds.some(
-                      (id) => id?.toString() === commentOwnerId
+                      (id) => id?.toString() === commentOwnerId,
                     );
+                    {
+                      selectedImage && (
+                        <div>
+                          <div
+                            className="image-modal"
+                            onClick={() => setSelectedImage(null)}
+                          >
+                            <button
+                              type="button"
+                              className="profile-image-close"
+                              onClick={() => setSelectedImage(false)}
+                            >
+                              <X />
+                            </button>
+                            <img
+                              src={selectedImage}
+                              className="full-image"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
 
                     return (
-	                  <div
-	                    key={`${comment.user?._id || "user"}-${comment.createdAt || index}`}
-	                    className={`post-comment-item ${isHighlightedComment ? "is-highlighted-comment" : ""}`}
-	                  >
+                      <div
+                        key={`${comment.user?._id || "user"}-${comment.createdAt || index}`}
+                        className={`post-comment-item ${isHighlightedComment ? "is-highlighted-comment" : ""}`}
+                      >
                         <button
                           type="button"
                           className="post-comment-profile-btn"
@@ -430,7 +586,7 @@ const DashboardPostCard = ({
                           {renderAvatar(
                             comment.user?.name || "User",
                             comment.user?.profileImage,
-                            "post-comment-user-avatar"
+                            "post-comment-user-avatar",
                           )}
                         </button>
                         <div className="post-comment-body">
@@ -440,11 +596,15 @@ const DashboardPostCard = ({
                                 <button
                                   type="button"
                                   className="post-comment-name post-comment-name-btn"
-                                  onClick={() => onOpenProfile(comment.user?._id)}
+                                  onClick={() =>
+                                    onOpenProfile(comment.user?._id)
+                                  }
                                 >
                                   {comment.user?.name || "User"}
                                 </button>
-                                <span className="post-comment-meta">{commentTime}</span>
+                                <span className="post-comment-meta">
+                                  {commentTime}
+                                </span>
                               </div>
                               <div className="post-comment-menu-wrap">
                                 <button
@@ -452,7 +612,7 @@ const DashboardPostCard = ({
                                   className="post-comment-menu-btn"
                                   onClick={() =>
                                     setActiveCommentMenuId((prev) =>
-                                      prev === commentId ? "" : commentId
+                                      prev === commentId ? "" : commentId,
                                     )
                                   }
                                 >
@@ -463,40 +623,56 @@ const DashboardPostCard = ({
                                     {isCommentOwner ? (
                                       <button
                                         type="button"
-                                        onClick={() => startEditComment(comment)}
+                                        onClick={() =>
+                                          startEditComment(comment)
+                                        }
                                       >
                                         Edit
                                       </button>
                                     ) : null}
                                     {isCommentOwner ||
-                                      actionJob.postedBy?._id?.toString() === currentUserId ? (
+                                    actionJob.postedBy?._id?.toString() ===
+                                      currentUserId ? (
                                       <button
                                         type="button"
-                                        onClick={() => onCommentDelete(actionJob._id, commentId)}
+                                        onClick={() =>
+                                          onCommentDelete(
+                                            actionJob._id,
+                                            commentId,
+                                          )
+                                        }
                                       >
                                         Delete
                                       </button>
                                     ) : null}
                                     <button
                                       type="button"
-                                      onClick={() => onOpenProfile(commentOwnerId)}
+                                      onClick={() =>
+                                        onOpenProfile(commentOwnerId)
+                                      }
                                       disabled={!commentOwnerId}
                                     >
                                       Open profile
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => onMessageUser(commentOwnerId)}
+                                      onClick={() =>
+                                        onMessageUser(commentOwnerId)
+                                      }
                                       disabled={isSelfCommentUser}
                                     >
                                       Message user
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => onToggleFollow(commentOwnerId)}
+                                      onClick={() =>
+                                        onToggleFollow(commentOwnerId)
+                                      }
                                       disabled={isSelfCommentUser}
                                     >
-                                      {isFollowingCommentUser ? "Unfollow user" : "Follow user"}
+                                      {isFollowingCommentUser
+                                        ? "Unfollow user"
+                                        : "Follow user"}
                                     </button>
                                   </div>
                                 ) : null}
@@ -507,7 +683,9 @@ const DashboardPostCard = ({
                                 <input
                                   type="text"
                                   value={editingCommentText}
-                                  onChange={(event) => setEditingCommentText(event.target.value)}
+                                  onChange={(event) =>
+                                    setEditingCommentText(event.target.value)
+                                  }
                                 />
                                 <div className="post-comment-edit-actions">
                                   <button
@@ -528,13 +706,17 @@ const DashboardPostCard = ({
                                 </div>
                               </div>
                             ) : (
-                              <div className="post-comment-text">{comment.text}</div>
+                              <div className="post-comment-text">
+                                {comment.text}
+                              </div>
                             )}
                           </div>
                           <div className="post-comment-actions">
                             <button
                               type="button"
-                              onClick={() => onCommentLike(actionJob._id, commentId)}
+                              onClick={() =>
+                                onCommentLike(actionJob._id, commentId)
+                              }
                             >
                               {isCommentLiked ? "Liked" : "Like"}
                             </button>
@@ -547,7 +729,7 @@ const DashboardPostCard = ({
                                   onClick={() =>
                                     openLikesViewer(
                                       "People who liked this comment",
-                                      comment.likes
+                                      comment.likes,
                                     )
                                   }
                                 >
@@ -559,7 +741,9 @@ const DashboardPostCard = ({
                             <button
                               type="button"
                               onClick={() =>
-                                setReplyCommentId((prev) => (prev === commentId ? "" : commentId))
+                                setReplyCommentId((prev) =>
+                                  prev === commentId ? "" : commentId,
+                                )
                               }
                             >
                               Reply
@@ -567,35 +751,41 @@ const DashboardPostCard = ({
                           </div>
                           {(comment.replies || []).length ? (
                             <div className="post-reply-list">
-                              {comment.replies.map((reply, replyIndex) => (
+                              {comment.replies.map((reply, replyIndex) =>
                                 (() => {
-                                  const replyOwnerId = reply.user?._id?.toString() || "";
+                                  const replyOwnerId =
+                                    reply.user?._id?.toString() || "";
                                   const replyTime = getRelativePostTime(
                                     reply.createdAt || reply.updatedAt,
-                                    now
+                                    now,
                                   );
                                   const isSelfReplyUser =
-                                    !replyOwnerId || replyOwnerId === currentUserId;
-                                  const isFollowingReplyUser = followingIds.some(
-                                    (id) => id?.toString() === replyOwnerId
+                                    !replyOwnerId ||
+                                    replyOwnerId === currentUserId;
+                                  const isFollowingReplyUser =
+                                    followingIds.some(
+                                      (id) => id?.toString() === replyOwnerId,
+                                    );
+                                  const replyMenuId = `${commentId}-${replyIndex}`;
+                                  const replyId =
+                                    reply._id?.toString() || replyMenuId;
+                                  const isReplyOwner =
+                                    replyOwnerId === currentUserId;
+                                  const isHighlightedReply =
+                                    highlightedReplyId === replyId;
+                                  const isReplyLiked = (reply.likes || []).some(
+                                    (id) => id?.toString() === currentUserId,
                                   );
-	                              const replyMenuId = `${commentId}-${replyIndex}`;
-	                              const replyId = reply._id?.toString() || replyMenuId;
-	                              const isReplyOwner = replyOwnerId === currentUserId;
-	                              const isHighlightedReply = highlightedReplyId === replyId;
-	                              const isReplyLiked = (reply.likes || []).some(
-	                                (id) => id?.toString() === currentUserId
-	                              );
 
                                   return (
-	                                <div
-	                                  key={`${reply.user?._id || "reply"}-${reply.createdAt || replyIndex}`}
-	                                  className={`post-reply-item ${isHighlightedReply ? "is-highlighted-reply" : ""}`}
-	                                >
+                                    <div
+                                      key={`${reply.user?._id || "reply"}-${reply.createdAt || replyIndex}`}
+                                      className={`post-reply-item ${isHighlightedReply ? "is-highlighted-reply" : ""}`}
+                                    >
                                       {renderAvatar(
                                         reply.user?.name || "User",
                                         reply.user?.profileImage,
-                                        "post-reply-avatar"
+                                        "post-reply-avatar",
                                       )}
                                       <div className="post-reply-body">
                                         <div className="post-reply-card">
@@ -604,45 +794,65 @@ const DashboardPostCard = ({
                                               <button
                                                 type="button"
                                                 className="post-comment-name post-comment-name-btn"
-                                                onClick={() => onOpenProfile(reply.user?._id)}
+                                                onClick={() =>
+                                                  onOpenProfile(reply.user?._id)
+                                                }
                                               >
                                                 {reply.user?.name || "User"}
                                               </button>
-                                              <span className="post-comment-meta">{replyTime}</span>
+                                              <span className="post-comment-meta">
+                                                {replyTime}
+                                              </span>
                                             </div>
                                             <div className="post-comment-menu-wrap">
                                               <button
                                                 type="button"
                                                 className="post-comment-menu-btn"
                                                 onClick={() =>
-                                                  setActiveReplyMenuId((prev) =>
-                                                    prev === replyMenuId ? "" : replyMenuId
+                                                  setActiveReplyMenuId(
+                                                    (prev) =>
+                                                      prev === replyMenuId
+                                                        ? ""
+                                                        : replyMenuId,
                                                   )
                                                 }
                                               >
                                                 ...
                                               </button>
-                                              {activeReplyMenuId === replyMenuId ? (
+                                              {activeReplyMenuId ===
+                                              replyMenuId ? (
                                                 <div className="post-comment-menu">
                                                   {isReplyOwner ? (
                                                     <button
                                                       type="button"
                                                       onClick={() => {
-                                                        setEditingReplyId(replyId);
-                                                        setEditingReplyText(reply.text || "");
-                                                        setActiveReplyMenuId("");
+                                                        setEditingReplyId(
+                                                          replyId,
+                                                        );
+                                                        setEditingReplyText(
+                                                          reply.text || "",
+                                                        );
+                                                        setActiveReplyMenuId(
+                                                          "",
+                                                        );
                                                       }}
                                                     >
                                                       Edit
                                                     </button>
                                                   ) : null}
                                                   {isReplyOwner ||
-                                                    commentOwnerId === currentUserId ||
-                                                    actionJob.postedBy?._id?.toString() === currentUserId ? (
+                                                  commentOwnerId ===
+                                                    currentUserId ||
+                                                  actionJob.postedBy?._id?.toString() ===
+                                                    currentUserId ? (
                                                     <button
                                                       type="button"
                                                       onClick={() =>
-                                                        onReplyDelete(actionJob._id, commentId, replyId)
+                                                        onReplyDelete(
+                                                          actionJob._id,
+                                                          commentId,
+                                                          replyId,
+                                                        )
                                                       }
                                                     >
                                                       Delete
@@ -650,21 +860,33 @@ const DashboardPostCard = ({
                                                   ) : null}
                                                   <button
                                                     type="button"
-                                                    onClick={() => onOpenProfile(replyOwnerId)}
+                                                    onClick={() =>
+                                                      onOpenProfile(
+                                                        replyOwnerId,
+                                                      )
+                                                    }
                                                     disabled={!replyOwnerId}
                                                   >
                                                     Open profile
                                                   </button>
                                                   <button
                                                     type="button"
-                                                    onClick={() => onMessageUser(replyOwnerId)}
+                                                    onClick={() =>
+                                                      onMessageUser(
+                                                        replyOwnerId,
+                                                      )
+                                                    }
                                                     disabled={isSelfReplyUser}
                                                   >
                                                     Message user
                                                   </button>
                                                   <button
                                                     type="button"
-                                                    onClick={() => onToggleFollow(replyOwnerId)}
+                                                    onClick={() =>
+                                                      onToggleFollow(
+                                                        replyOwnerId,
+                                                      )
+                                                    }
                                                     disabled={isSelfReplyUser}
                                                   >
                                                     {isFollowingReplyUser
@@ -681,13 +903,20 @@ const DashboardPostCard = ({
                                                 type="text"
                                                 value={editingReplyText}
                                                 onChange={(event) =>
-                                                  setEditingReplyText(event.target.value)
+                                                  setEditingReplyText(
+                                                    event.target.value,
+                                                  )
                                                 }
                                               />
                                               <div className="post-comment-edit-actions">
                                                 <button
                                                   type="button"
-                                                  onClick={() => submitReplyEdit(commentId, replyId)}
+                                                  onClick={() =>
+                                                    submitReplyEdit(
+                                                      commentId,
+                                                      replyId,
+                                                    )
+                                                  }
                                                 >
                                                   Save
                                                 </button>
@@ -703,14 +932,20 @@ const DashboardPostCard = ({
                                               </div>
                                             </div>
                                           ) : (
-                                            <div className="post-comment-text">{reply.text}</div>
+                                            <div className="post-comment-text">
+                                              {reply.text}
+                                            </div>
                                           )}
                                         </div>
                                         <div className="post-comment-actions post-reply-actions">
                                           <button
                                             type="button"
                                             onClick={() =>
-                                              onReplyLike(actionJob._id, commentId, replyId)
+                                              onReplyLike(
+                                                actionJob._id,
+                                                commentId,
+                                                replyId,
+                                              )
                                             }
                                           >
                                             {isReplyLiked ? "Liked" : "Like"}
@@ -724,7 +959,7 @@ const DashboardPostCard = ({
                                                 onClick={() =>
                                                   openLikesViewer(
                                                     "People who liked this reply",
-                                                    reply.likes
+                                                    reply.likes,
                                                   )
                                                 }
                                               >
@@ -735,7 +970,9 @@ const DashboardPostCard = ({
                                           <span>|</span>
                                           <button
                                             type="button"
-                                            onClick={() => setReplyCommentId(commentId)}
+                                            onClick={() =>
+                                              setReplyCommentId(commentId)
+                                            }
                                           >
                                             Reply
                                           </button>
@@ -743,8 +980,8 @@ const DashboardPostCard = ({
                                       </div>
                                     </div>
                                   );
-                                })()
-                              ))}
+                                })(),
+                              )}
                             </div>
                           ) : null}
                           {replyCommentId === commentId ? (
@@ -752,10 +989,15 @@ const DashboardPostCard = ({
                               <input
                                 type="text"
                                 value={replyText}
-                                onChange={(event) => setReplyText(event.target.value)}
+                                onChange={(event) =>
+                                  setReplyText(event.target.value)
+                                }
                                 placeholder="Write a reply..."
                               />
-                              <button type="button" onClick={() => submitReply(commentId)}>
+                              <button
+                                type="button"
+                                onClick={() => submitReply(commentId)}
+                              >
                                 Reply
                               </button>
                             </div>
@@ -774,22 +1016,36 @@ const DashboardPostCard = ({
             <div
               className="likes-viewer-backdrop"
               onClick={() =>
-                setLikeViewer({ isOpen: false, title: "", users: [], isLoading: false })
+                setLikeViewer({
+                  isOpen: false,
+                  title: "",
+                  users: [],
+                  isLoading: false,
+                })
               }
             >
-              <div className="likes-viewer-modal" onClick={(event) => event.stopPropagation()}>
+              <div
+                className="likes-viewer-modal"
+                onClick={(event) => event.stopPropagation()}
+              >
                 <div className="likes-viewer-header">
                   <div>
                     <div className="likes-viewer-title">{likeViewer.title}</div>
                     <div className="likes-viewer-subtitle">
-                      {likeViewer.users.length} {likeViewer.users.length === 1 ? "person" : "people"}
+                      {likeViewer.users.length}{" "}
+                      {likeViewer.users.length === 1 ? "person" : "people"}
                     </div>
                   </div>
                   <button
                     type="button"
                     className="likes-viewer-close"
                     onClick={() =>
-                      setLikeViewer({ isOpen: false, title: "", users: [], isLoading: false })
+                      setLikeViewer({
+                        isOpen: false,
+                        title: "",
+                        users: [],
+                        isLoading: false,
+                      })
                     }
                   >
                     ×
@@ -814,12 +1070,16 @@ const DashboardPostCard = ({
                       {renderAvatar(
                         likedUser.name || "User",
                         likedUser.profileImage,
-                        "likes-viewer-avatar"
+                        "likes-viewer-avatar",
                       )}
                       <span className="likes-viewer-copy">
-                        <span className="likes-viewer-name">{likedUser.name || "User"}</span>
+                        <span className="likes-viewer-name">
+                          {likedUser.name || "User"}
+                        </span>
                         {likedUser.role ? (
-                          <span className="likes-viewer-role">{likedUser.role}</span>
+                          <span className="likes-viewer-role">
+                            {likedUser.role}
+                          </span>
                         ) : null}
                       </span>
                     </button>
@@ -836,6 +1096,24 @@ const DashboardPostCard = ({
           ) : null}
         </div>
       </div>
+      {selectedImage && (
+        <div className="zoom-image-modal">
+          <div className="image-modal" onClick={() => setSelectedImage(null)}>
+            <button
+              type="button"
+              className="profile-image-close"
+              onClick={() => setSelectedImage(false)}
+            >
+              <X />
+            </button>
+            <img
+              src={selectedImage}
+              className="full-image"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 };

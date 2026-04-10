@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MoreHorizontal } from "lucide-react";
 import API from "../../services/api";
 import "../Dashboard/dashboard.css";
 import AppTopbar from "../Navbar/AppTopbar";
+import NotificationListItem from "./NotificationListItem";
+import NotificationsHeader from "./NotificationsHeader";
 import { logoutUser } from "../../utils/session";
 import { getCurrentUserId, getRelativePostTime, renderAvatar } from "../../utils/userHelpers";
 import "./notifications.css";
@@ -157,12 +158,7 @@ const Notifications = () => {
       setToast(error.response?.data?.message || "Unable to delete notification");
     }
   };
-
-  const handleReportNotification = (notification) => {
-    setActiveMenuId("");
-    setToast(`Reported ${notification.actor?.name || "this account"}`);
-  };
-
+ 
   const handleDeleteAllNotifications = async () => {
     try {
       await API.delete("/notifications");
@@ -201,88 +197,32 @@ const Notifications = () => {
         onLogout={handleLogout}
       />
       <div className="notifications-shell">
-        <div className="notifications-header">
-          <div>
-            <h1>Notifications</h1>
-            <p>{unreadCount} unread updates</p>
-          </div>
-          <div className="notifications-header-actions">
-            <button type="button" onClick={handleMarkAllRead}>
-              Mark all as read
-            </button>
-            <button type="button" onClick={handleDeleteAllNotifications}>
-              Delete all
-            </button>
-          </div>
-        </div>
+        <NotificationsHeader
+          unreadCount={unreadCount}
+          onMarkAllRead={handleMarkAllRead}
+          onDeleteAll={handleDeleteAllNotifications}
+        />
 
-        <div className="notifications-list" ref={menuRef}>
+        <div className="notifications-list">
           {notifications.length ? (
             notifications.map((notification) => (
-              <div
+              <NotificationListItem
                 key={notification._id}
-                className={`notification-page-card ${notification.read ? "is-read" : ""}`}
-              >
-                <button
-                  type="button"
-                  className="notification-page-main"
-                  onClick={() => handleOpenNotification(notification)}
-                >
-                  {renderAvatar(
-                    notification.actor?.name || "Someone",
-                    notification.actor?.profileImage,
-                    "notification-page-avatar"
-                  )}
-                  <div className="notification-page-copy">
-                    <div className="notification-page-topline">
-                      <span className="notification-page-name">
-                        {notification.actor?.name || "Someone"}
-                      </span>
-                      <span className="notification-page-time">
-                        {getRelativePostTime(notification.createdAt, now)}
-                      </span>
-                    </div>
-                    <div className="notification-page-message">{notification.message}</div> 
-                  </div>
-                </button>
-
-                <div className="notification-page-menu-wrap">
-                  <button
-                    type="button"
-                    className="notification-page-menu-btn"
-                    onClick={() =>
-                      setActiveMenuId((prev) =>
-                        prev === notification._id ? "" : notification._id
-                      )
-                    }
-                  >
-                    <MoreHorizontal size={18} />
-                  </button>
-                  {activeMenuId === notification._id ? (
-                    <div className="notification-page-menu">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteNotification(notification._id)}
-                      >
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/profile/${notification.actor?._id}`)}
-                        disabled={!notification.actor?._id}
-                      >
-                        View profile
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleReportNotification(notification)}
-                      >
-                        Report
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
+                notification={notification}
+                now={now}
+                activeMenuId={activeMenuId}
+                menuRef={menuRef}
+                renderAvatar={renderAvatar}
+                getRelativePostTime={getRelativePostTime}
+                onOpenNotification={handleOpenNotification}
+                onToggleMenu={(notificationId) =>
+                  setActiveMenuId((prev) =>
+                    prev === notificationId ? "" : notificationId
+                  )
+                }
+                onDeleteNotification={handleDeleteNotification}
+                onViewProfile={(userId) => navigate(`/profile/${userId}`)}
+              />
             ))
           ) : (
             <div className="notifications-empty">No notifications yet</div>

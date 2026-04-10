@@ -4,8 +4,11 @@ import API from "../../services/api";
 import "../Dashboard/dashboard.css";
 import "./profile.css";
 import AppTopbar from "../Navbar/AppTopbar";
+import ProfileConnectionsModal from "./ProfileConnectionsModal";
+import ProfileEditModal from "./ProfileEditModal";
 import ProfileHeroCard from "./ProfileHeroCard";
-import DashboardPostCard from "../Dashboard/DashboardPostCard";
+import ProfileImagePreviewModal from "./ProfileImagePreviewModal";
+import ProfilePostsSection from "./ProfilePostsSection";
 import ImageCropModal from "../Profile Img crop/ImageCropModal";
 import {
   getCurrentUserId,
@@ -19,6 +22,7 @@ const Profile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [viewer, setViewer] = useState(null);
   const [following, setFollowing] = useState([]);
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState([]);
@@ -45,10 +49,13 @@ const Profile = () => {
     const fetchData = async () => {
       const [profileRes, currentUserRes] = await Promise.all([
         API.get(`/users/${id}`),
-        currentUserId ? API.get(`/users/${currentUserId}`) : Promise.resolve(null),
+        currentUserId
+          ? API.get(`/users/${currentUserId}`)
+          : Promise.resolve(null),
       ]);
 
       setUser(profileRes.data);
+      setViewer(currentUserRes?.data || null);
       setProfileDraft({
         name: profileRes.data.name || "",
         role: profileRes.data.role || "",
@@ -65,12 +72,12 @@ const Profile = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setNow(Date.now());
-    }, 60000);
+    }, 40000);
 
     return () => clearInterval(timer);
   }, []);
 
-  if (!user) return <p>Loading...</p>;
+  if (!user) return <p className="loading"></p>;
 
   const aboutText =
     user.bio ||
@@ -89,12 +96,12 @@ const Profile = () => {
       setUser((prevUser) =>
         prevUser
           ? {
-            ...prevUser,
-            followerCount: isCurrentlyFollowing
-              ? Math.max((prevUser.followerCount || 1) - 1, 0)
-              : (prevUser.followerCount || 0) + 1,
-          }
-          : prevUser
+              ...prevUser,
+              followerCount: isCurrentlyFollowing
+                ? Math.max((prevUser.followerCount || 1) - 1, 0)
+                : (prevUser.followerCount || 0) + 1,
+            }
+          : prevUser,
       );
     } catch (err) {
       alert(err.response?.data?.message || "Follow failed");
@@ -199,7 +206,7 @@ const Profile = () => {
               ...prevUser,
               ...res.data.user,
             }
-          : prevUser
+          : prevUser,
       );
       setProfileFormOpen(false);
     } catch (err) {
@@ -220,6 +227,16 @@ const Profile = () => {
             profileImage: user.profileImage || "",
           },
   }));
+  const repostLookup = (user.jobs || []).reduce((lookup, job) => {
+    const sourceId = job.repostOf?._id?.toString();
+    const repostId = job._id?.toString();
+
+    if (sourceId && repostId && job.postedBy?._id?.toString() === currentUserId) {
+      lookup[sourceId] = repostId;
+    }
+
+    return lookup;
+  }, {});
 
   return (
     <div className="dashboard-page profile-page">
@@ -241,11 +258,13 @@ const Profile = () => {
                       ...prevUser,
                       coverImage,
                     }
-                  : prevUser
+                  : prevUser,
               );
               setPendingCoverImage(null);
             } catch (err) {
-              alert(err.response?.data?.message || "Unable to update cover image");
+              alert(
+                err.response?.data?.message || "Unable to update cover image",
+              );
             }
           }}
         />
@@ -269,97 +288,15 @@ const Profile = () => {
         />
       ) : null}
       {profileFormOpen && !pendingProfileImage ? (
-        <div className="profile-modal-backdrop" onClick={() => setProfileFormOpen(false)}>
-          <div className="profile-modal profile-about-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="profile-modal-header">
-              <h2>Edit Profile</h2> 
-            </div>
-            <div className="profile-about-editor">
-              <div className="profile-photo-editor">
-                {profileDraft.profileImage ? (
-                  <img
-                    src={profileDraft.profileImage}
-                    alt={profileDraft.name || "Profile"}
-                    className="profile-photo-preview"
-                  />
-                ) : (
-                  <div className="profile-photo-preview profile-avatar-fallback">
-                    {getInitials(profileDraft.name || "User")}
-                  </div>
-                )}
-                <label className="profile-photo-upload">
-                  Change profile photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfileImageChange}
-                  />
-                </label>
-              </div>
-              <label className="profile-field">
-                <span>Name</span>
-                <input
-                  type="text"
-                  name="name"
-                  className="profile-about-input"
-                  value={profileDraft.name}
-                  onChange={handleProfileDraftChange}
-                  placeholder="Your full name"
-                />
-              </label>
-              <label className="profile-field">
-                <span>Professional profile</span>
-                <input
-                  type="text"
-                  name="role"
-                  className="profile-about-input"
-                  value={profileDraft.role}
-                  onChange={handleProfileDraftChange}
-                  placeholder="Frontend Developer"
-                />
-              </label>
-              <label className="profile-field">
-                <span>City</span>
-                <input
-                  type="text"
-                  name="location"
-                  className="profile-about-input"
-                  value={profileDraft.location}
-                  onChange={handleProfileDraftChange}
-                  placeholder="Jaipur"
-                />
-              </label>
-              <label className="profile-field">
-                <span>About</span>
-              <textarea
-                className="profile-about-textarea"
-                name="bio"
-                value={profileDraft.bio}
-                onChange={handleProfileDraftChange}
-                placeholder="Write something about yourself..."
-                rows={7}
-              />
-              </label>
-              <div className="profile-about-actions">
-                <button
-                  type="button"
-                  className="profile-about-cancel"
-                  onClick={() => setProfileFormOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="profile-about-save"
-                  onClick={handleSaveProfile}
-                  disabled={isSavingProfile}
-                >
-                  {isSavingProfile ? "Saving..." : "Save Profile"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ProfileEditModal
+          profileDraft={profileDraft}
+          getInitials={getInitials}
+          onClose={() => setProfileFormOpen(false)}
+          onProfileImageChange={handleProfileImageChange}
+          onProfileDraftChange={handleProfileDraftChange}
+          onSaveProfile={handleSaveProfile}
+          isSavingProfile={isSavingProfile}
+        />
       ) : null}
       <AppTopbar
         onBrandClick={nextPage}
@@ -374,126 +311,67 @@ const Profile = () => {
         onLogout={handleLogout}
       />
       <div className="dashboard-main">
-      <div className="profile-shell">
-        {/* <span className="profile-badge">Profile</span> */}
-        <ProfileHeroCard
-          user={user}
-          currentUserId={currentUserId}
-          following={following}
-          renderAvatar={renderAvatar}
-          onToggleFollow={handleToggleFollow}
-          onMessage={() => navigate(`/messages/${user._id}`)}
-          onOpenFollowers={() => openConnections("followers")}
-          onOpenFollowing={() => openConnections("following")}
-          onCoverImageChange={handleCoverImageChange}
-          onEditProfileClick={handleOpenProfileForm}
-          onProfileImagePreview={() => setIsProfileImageOpen(true)}
-        />
+        <div className="profile-shell">
+          {/* <span className="profile-badge">Profile</span> */}
+          <ProfileHeroCard
+            user={user}
+            currentUserId={currentUserId}
+            following={following}
+            renderAvatar={renderAvatar}
+            onToggleFollow={handleToggleFollow}
+            onMessage={() => navigate(`/messages/${user._id}`)}
+            onOpenFollowers={() => openConnections("followers")}
+            onOpenFollowing={() => openConnections("following")}
+            onCoverImageChange={handleCoverImageChange}
+            onEditProfileClick={handleOpenProfileForm}
+            onProfileImagePreview={() => setIsProfileImageOpen(true)}
+          />
 
-        <div className="profile-grid">
-          <div className="profile-card">
-            <h2>About</h2>
-            <div className="profile-job-item">
-              <p>{aboutText}</p>
-            </div>
-          </div>
-
-          <div className="profile-card"> 
-            {profilePosts.length ? (
-              <div className="profile-job-list">
-                {profilePosts.map((job) => (
-                  <DashboardPostCard
-                    key={job._id}
-                    job={job}
-                    currentUser={user}
-                    currentUserId={currentUserId}
-                    now={now}
-                    renderAvatar={renderAvatar}
-                    getRelativePostTime={getRelativePostTime}
-                    onOpenProfile={(userId) => navigate(`/profile/${userId}`)}
-                    showOwnerActions={false}
-                  />
-                ))}
+          {/* about section */}
+          <div className="profile-grid">
+            <div className="profile-card">
+              <h2>About</h2>
+              <div className="profile-job-item">
+                <p>{aboutText}</p>
               </div>
-            ) : (
-              <p>No jobs posted yet.</p>
-            )}
-          </div>
+            </div>
 
+            <ProfilePostsSection
+              profilePosts={profilePosts}
+              user={user}
+              viewer={viewer}
+              currentUserId={currentUserId}
+              now={now}
+              renderAvatar={renderAvatar}
+              getRelativePostTime={getRelativePostTime}
+              onOpenProfile={(userId) => navigate(`/profile/${userId}`)}
+              onOpenPost={(postId) => navigate(`/dashboard?post=${postId}`)}
+              followingIds={following}
+              onToggleFollow={toggleFollow}
+              onMessageUser={(userId) => navigate(`/messages/${userId}`)}
+              repostLookup={repostLookup}
+            />
+          </div>
         </div>
-      </div>
       </div>
       {isProfileImageOpen ? (
-        <div
-          className="profile-modal-backdrop profile-image-backdrop"
-          onClick={() => setIsProfileImageOpen(false)}
-        >
-          <div
-            className="profile-image-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="profile-image-close"
-              onClick={() => setIsProfileImageOpen(false)}
-            >
-              Close
-            </button>
-            {user.profileImage ? (
-              <img
-                src={user.profileImage}
-                alt={user.name || "Profile"}
-                className="profile-image-preview-large"
-              />
-            ) : (
-              <div className="profile-image-preview-large profile-avatar-fallback">
-                {getInitials(user.name || "User")}
-              </div>
-            )}
-          </div>
-        </div>
+        <ProfileImagePreviewModal
+          user={user}
+          getInitials={getInitials}
+          onClose={() => setIsProfileImageOpen(false)}
+        />
       ) : null}
       {connectionsOpen ? (
-        <div className="profile-modal-backdrop" onClick={() => setConnectionsOpen(false)}>
-          <div className="profile-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="profile-modal-header">
-              <h2>{connectionsTitle}</h2>
-              <button
-                type="button"
-                className="profile-modal-close"
-                onClick={() => setConnectionsOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-            <div className="profile-modal-list">
-              {connections.length ? (
-                connections.map((person) => (
-                  <button
-                    type="button"
-                    key={person._id}
-                    className="profile-modal-item"
-                    onClick={() => {
-                      setConnectionsOpen(false);
-                      navigate(`/profile/${person._id}`);
-                    }}
-                  >
-                    {renderAvatar(person.name, person.profileImage, "search-dropdown-avatar")}
-                    <div className="profile-modal-copy">
-                      <div className="profile-modal-name">{person.name}</div>
-                      <div className="profile-modal-role">
-                        {person.role || "HireHub member"}
-                        {person.company ? ` - ${person.company}` : ""}
-                      </div>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <div className="profile-modal-empty">No users found.</div>
-              )}
-            </div>
-          </div>
-        </div>
+        <ProfileConnectionsModal
+          connectionsTitle={connectionsTitle}
+          connections={connections}
+          renderAvatar={renderAvatar}
+          onClose={() => setConnectionsOpen(false)}
+          onOpenProfile={(userId) => {
+            setConnectionsOpen(false);
+            navigate(`/profile/${userId}`);
+          }}
+        />
       ) : null}
     </div>
   );

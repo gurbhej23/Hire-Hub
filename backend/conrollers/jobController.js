@@ -127,6 +127,19 @@ export const deleteJob = async (req, res) => {
       return res.status(403).json({ message: "You can delete only your own post" });
     }
 
+    if (job.repostOf) {
+      const sourceJob = await Job.findById(job.repostOf);
+
+      if (sourceJob) {
+        sourceJob.reposts = (sourceJob.reposts || []).filter(
+          (id) => id.toString() !== req.user._id.toString()
+        );
+        await sourceJob.save();
+      }
+    } else {
+      await Job.deleteMany({ repostOf: job._id });
+    }
+
     await job.deleteOne();
     return res.json({ message: "Job deleted" });
   } catch (error) {
@@ -441,7 +454,28 @@ export const toggleRepost = async (req, res) => {
       (id) => id.toString() === req.user._id.toString()
     );
 
-    job.reposts = toggleIdInArray(job.reposts || [], req.user._id);
+    if (hadReposted) {
+      await Job.findOneAndDelete({
+        postedBy: req.user._id,
+        repostOf: job._id,
+      });
+      job.reposts = (job.reposts || []).filter(
+        (id) => id.toString() !== req.user._id.toString()
+      );
+    } else {
+      await Job.create({
+        title: job.title,
+        description: job.description || "",
+        company: job.company || "HireHub",
+        location: job.location || "Online",
+        mediaUrl: job.mediaUrl || "",
+        mediaType: job.mediaType || "",
+        postedBy: req.user._id,
+        repostOf: job._id,
+      });
+      job.reposts = [...(job.reposts || []), req.user._id];
+    }
+
     await job.save();
 
     if (hadReposted) {

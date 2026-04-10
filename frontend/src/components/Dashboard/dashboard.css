@@ -192,7 +192,6 @@ button {
     rgba(246, 245, 242, 0.96)
   ) !important;
   color: #2f5d50;
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08) !important;
   align-items: center;
   justify-content: center;
 }
@@ -372,7 +371,7 @@ button {
 }
 
 .dashboard-profile-about {
-  padding: 14px;
+  padding: 6px;
   border-radius: 5px;
   background: #f6f5f2;
   border: 1px solid #d7ddd7;
@@ -493,10 +492,10 @@ h1 {
 }
 
 .nav-profile-card {
+  border-radius: 5px;
   background: var(--surface);
   padding: 18px;
-  width: min(100%, 195px);
-  border-radius: 14px;
+  width: min(100%, 195px); 
   border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-soft);
   align-self: flex-start;
@@ -515,7 +514,7 @@ h1 {
   width: min(100%, 660px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .dashboard-right-column {
@@ -526,7 +525,7 @@ h1 {
 }
 
 .dashboard-container .container {
-  padding: 18px;
+  padding: 10px;
   border-radius: 5px;
   border: 1px solid var(--border-soft);
   background: var(--surface);
@@ -635,12 +634,11 @@ h1 {
 }
 
 .add-post-media-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  /* height: 20px; */
 }
 
 .add-post-media-preview {
-  margin-top: 12px;
   padding: 12px;
   border-radius: 14px;
   background: #f8fbff;
@@ -651,11 +649,11 @@ h1 {
 .add-post-preview-video,
 .post-media-preview {
   width: 100%;
-  max-height: 320px;
+  max-height: 110vh;
   object-fit: cover;
   border-radius: 12px;
   display: block;
-  margin-top: 12px;
+  margin-bottom: 12px;
 }
 
 .add-post-preview-image,
@@ -665,7 +663,6 @@ h1 {
 
 .add-post-clear-media {
   min-width: auto !important;
-  margin-top: 10px;
   padding: 8px 12px !important;
   border: none;
   border-radius: 10px;
@@ -725,7 +722,62 @@ h1 {
 
 .dashboard-container button {
   /* min-width: 60px; */
-  font-weight: 700;
+  font-weight: 600;
+}
+
+.menu-container {
+  position: relative;
+}
+
+.job-tool-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.dropdown {
+  position: absolute;
+  right: 30px;
+  top: 0px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  width: 120px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.dropdown p {
+  margin: 0;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.dropdown p:hover {
+  background: #f5f5f5;
+}
+
+.dropdown-action {
+  width: 100%;
+  min-width: auto !important;
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  color: #18211d;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dropdown-action:hover {
+  background: #f5f5f5;
+}
+
+.dropdown-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .dashboard-section-header {
@@ -751,7 +803,7 @@ h1 {
   display: flex;
   flex-direction: column;
   border-radius: 5px;
-  gap: 20px;
+  gap: 10px;
   background: transparent;
   padding: 0;
 }
@@ -835,7 +887,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  /* gap: 12px; */
   padding: 12px 0;
   border-bottom: 1px solid #eef2f7;
 }
@@ -847,7 +899,7 @@ h1 {
 .suggested-user-profile {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   min-width: 0;
   padding: 0;
   border: none;
@@ -861,15 +913,18 @@ h1 {
 
 .suggested-user-name {
   color: #0f172a;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
 }
 
 .suggested-user-meta {
   margin-top: 4px;
   color: #64748b;
-  font-size: 13px;
+  font-size: 11px;
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .suggested-user-actions {
@@ -923,6 +978,10 @@ h1 {
   box-shadow: var(--shadow-soft);
 }
 
+.post-header {
+  padding: 0.4rem 0.7rem 0;
+}
+
 .post-social-proof {
   display: flex;
   flex-direction: column;
@@ -956,19 +1015,17 @@ h1 {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
   padding-top: 9px;
 }
 
 .job-card-profile {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-  text-align: left;
   transition: transform 0.18s ease;
 }
 
@@ -982,8 +1039,8 @@ h1 {
 
 .job-card-avatar,
 .search-dropdown-avatar {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 999px;
   display: flex;
   align-items: center;
@@ -998,25 +1055,28 @@ h1 {
 .job-card-copy {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: flex-start;
 }
 
 .job-title {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 1vw;
   color: #0f172a;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
+  font-weight: 600;
 }
 
 .job-card-role {
   color: #64748b;
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .job-card-meta {
-  margin-top: 7px;
+  margin-top: 3px;
   color: #94a3b8;
   font-size: 9px;
+  font-weight: 600;
 }
 
 .job-card-tools {
@@ -1027,7 +1087,6 @@ h1 {
 
 .job-tool-btn {
   padding: 6px 12px;
-  border: 1px solid #cbd5e1;
   border-radius: 999px;
   background: transparent;
   color: #334155;
@@ -1044,9 +1103,8 @@ h1 {
   color: var(--text-strong);
   font-size: 15px;
   line-height: 1.6;
-  margin: 10px 0px 10px;
+  margin: 13px 0px 4px;
   white-space: inherit;
-  font-weight: 500;
 }
 
 .post-media-preview {
@@ -1066,7 +1124,7 @@ h1 {
 }
 
 .post-engagement-bar {
-  margin: 6px 0px;
+  margin: 0.4rem 0.7rem;
   /* padding-bottom: 12px; */
   display: flex;
   align-items: center;
@@ -1082,12 +1140,12 @@ h1 {
 }
 
 .reaction-dot {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 18px;
   border-radius: 50%;
   display: inline-flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   font-size: 11px;
   box-shadow: 0 0 0 2px #ffffff;
 }
@@ -1131,7 +1189,7 @@ h1 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 11px 7px 0px;
+  padding: 11px 7px 8px;
   border: none;
   background: transparent;
   color: #475569;
@@ -1150,13 +1208,40 @@ h1 {
 
 .repost-banner {
   padding: 12px 18px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   color: #1d4ed8;
   font-size: 13px;
   font-weight: 700;
 }
 
+.repost-link-btn {
+  min-width: auto !important;
+  padding: 0 !important;
+  border: none;
+  background: transparent;
+  color: #2f5d50;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.post-repost-status {
+  padding: 10px 14px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid #e2e8f0;
+  color: #5f6e67;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .post-comments {
-  padding: 18px 0px 8px;
+  padding: 0rem 0.7rem 1.2rem;
   overflow: visible;
 }
 
@@ -1291,19 +1376,15 @@ h1 {
 
 .post-comment-menu {
   position: absolute;
-  top: auto;
-  bottom: calc(100% + 6px);
-  right: 0;
-  min-width: 140px;
-  max-width: min(220px, calc(100vw - 32px));
-  max-height: min(240px, calc(100vh - 32px));
+  top: -140px;
+  right: 15px;
+  min-width: 122px;
   display: flex;
   flex-direction: column;
   padding: 8px;
   border-radius: 12px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+  border: 2px solid #e2e8f0;
   overflow-y: auto;
   z-index: 80;
   animation: menu-pop 0.18s ease-out;
@@ -1359,7 +1440,6 @@ h1 {
 }
 
 .post-comment-text {
-  margin-top: 8px;
   color: #32413a;
   font-size: 15px;
   line-height: 1.55;
@@ -1678,10 +1758,13 @@ h1 {
 }
 
 .search-dropdown-role {
-  color: #6b7871;
+  color: #64748b;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   margin-top: 4px;
-  font-size: 13px;
+  font-size: 11px;
   line-height: 1.4;
+  overflow: hidden;
 }
 
 .search-follow-btn {
@@ -1717,7 +1800,35 @@ h1 {
   font-weight: 600;
 }
 
-@media (max-width: 768px) {
+.zoom-image-modal {
+  z-index: 99;
+  background: #0f172a73;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 20px;
+  display: flex;
+  position: fixed;
+  inset: 0;
+  backdrop-filter: blur(10px);
+}
+
+.image-modal {
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  position: relative;
+}
+
+.full-image {
+  object-fit: contain;
+  background: #fff;
+  /* border-radius: 22px; */
+  width: min(100%, 720px);
+  max-height: 80vh;
+  box-shadow: 0 24px 56px #0f172a40;
+}
+
+@media (max-width: 770px) {
   .navbar {
     padding: 10px 14px;
     flex-wrap: nowrap;
@@ -1728,6 +1839,15 @@ h1 {
     box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
     background: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(14px);
+  }
+
+  .notification-badge {
+    height: 10px;
+    padding: 0 5px;
+    font-size: 7px;
+    line-height: 0px;
+    top: -2px;
+    left: 13px;
   }
 
   .dashboard-toolbar {
@@ -1749,7 +1869,7 @@ h1 {
   }
 
   .dashboard-badge {
-    font-size: 14px;
+    font-size: 16px;
     letter-spacing: 0.04em;
     padding: 4px 2px;
   }
@@ -1793,7 +1913,16 @@ h1 {
 
   .dashboard-container button {
     /* min-width: 75px; */
-    padding: 12px 0px;
+    /* padding: 12px 0px 0px; */
+    align-items: center;
+  }
+
+  .job-card-role {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 45vw;
+    font-size: 10px;
   }
 
   .dashboard-container .container {
@@ -1855,12 +1984,38 @@ h1 {
   .job-card {
     border-radius: 0px;
   }
+
+  .suggested-user-meta {
+    margin-top: 1px;
+    font-size: 10px;
+  }
+
+  .suggested-user-name {
+    font-size: 18px;
+  }
+
+  .job-title{
+    font-size: 13px;
+  }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 430px) {
   .navbar {
     padding: 8px 10px;
     gap: 8px;
+  }
+
+  .Navbar-List ul {
+    gap: 4vw;
+  }
+
+  .notification-badge {
+    height: 10px;
+    padding: 0 5px;
+    font-size: 7px;
+    line-height: 0px;
+    top: -3px;
+    left: 10px;
   }
 
   .dashboard-brand {
@@ -1868,7 +2023,7 @@ h1 {
   }
 
   .dashboard-badge {
-    font-size: 12px;
+    font-size: 14px;
     letter-spacing: 0.03em;
     padding: 4px 0;
   }
@@ -1898,16 +2053,41 @@ h1 {
     right: -2px;
     min-width: 138px;
   }
+
+  .suggested-user-meta {
+    margin-top: 1px;
+    font-size: 10px;
+  }
+
+  .suggested-user-name {
+    font-size: 16px;
+  }
 }
 
-@media (max-width: 340px) {
+@media (max-width: 375px) {
   .navbar {
     padding: 8px 8px;
     gap: 6px;
   }
 
+  .Navbar-List ul {
+    gap: 2vw;
+  }
+
+  .notification-badge {
+    height: 7px;
+    padding: 0 3px;
+    font-size: 7px;
+    line-height: 0px;
+    top: 0px;
+    left: 8px;
+  }
+
+  .job-title {
+    font-size: 10px;
+  }
   .dashboard-badge {
-    font-size: 11px;
+    font-size: 12px;
     letter-spacing: 0.02em;
   }
 
@@ -1929,6 +2109,15 @@ h1 {
   .mobile-search-dropdown {
     width: min(94vw, 286px);
   }
+
+  .suggested-user-meta {
+    margin-top: 1px;
+    font-size: 10px;
+  }
+
+  .suggested-user-name {
+    font-size: 15px;
+  }
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
@@ -1936,15 +2125,44 @@ h1 {
     flex-direction: row;
   }
 
-  .Navbar-List ul{
-    gap: 26px;
+  .Navbar-List ul {
+    gap: 40px;
     padding: 0;
   }
 
+  .notification-badge {
+    height: 10px;
+    padding: 0 5px;
+    font-size: 7px;
+    line-height: 0px;
+    top: 4px;
+    left: 19px;
+  }
+
+  .search-dropdown-wrapper input {
+    width: 14vw;
+  }
+
   .nav-profile-card {
-    width: 75vw;
+    width: 55vw;
     position: static;
     top: auto;
+  }
+
+  .navbar-profile-avatar {
+    width: 125px;
+  }
+
+  .dashboard-profile-about {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+  }
+
+  .dash-profile {
+    flex-direction: column;
+    justify-content: center;
+    gap: 20px;
   }
 
   .dashboard-container {
@@ -1959,5 +2177,9 @@ h1 {
 
   .job-card {
     border-radius: 0px;
+  }
+
+  .job-title{
+    font-size: 1.5vw;
   }
 }

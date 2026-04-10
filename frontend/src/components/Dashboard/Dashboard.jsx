@@ -3,14 +3,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 import API from "../../services/api";
 import AddJob from "../Add";
 import AppTopbar from "../Navbar/AppTopbar";
-import DashboardProfileCard from "../Profile/DashboardProfileCard";
-import DashboardPostCard from "./DashboardPostCard"; 
+import DashboardProfileCard from "./DashboardProfileCard";
+import DashboardPostCard from "./DashboardPostCard";
+import DashboardSuggestedPeople from "./DashboardSuggestedPeople";
 import {
   getCurrentUserId,
   getRelativePostTime,
   renderAvatar,
 } from "../../utils/userHelpers";
-import { logoutUser } from "../../utils/session"; 
+import { logoutUser } from "../../utils/session";
 
 const isFakeJobId = (jobId = "") => jobId?.toString().startsWith("fake-job-");
 
@@ -185,9 +186,6 @@ const Dashboard = () => {
   const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editJob, setEditJob] = useState(null);
-  const [user, setUser] = useState([]);
-  const [onOpenFollowers, setOnOpenFollowers] = useState([]);
-  const [onOpenFollowing, setOnOpenFollowing] = useState([]);
   const [users, setUsers] = useState([]);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -301,7 +299,7 @@ const Dashboard = () => {
 
     try {
       await API.delete(`/jobs/${id}`);
-      setJobs(jobs.filter((job) => job._id !== id));
+      await fetchJobs();
       fetchCurrentUser();
       showToast("Post deleted");
     } catch (err) {
@@ -887,38 +885,8 @@ const Dashboard = () => {
     );
 
     try {
-      const res = await API.patch(`/jobs/${sourceJobId}/repost`);
-      const normalizedJob = normalizeJobForList(res.data, currentUser);
-      const normalizedJobId = normalizedJob?._id?.toString();
-      const hasCurrentUserRepost = (normalizedJob.reposts || []).some(
-        (id) => id?.toString() === currentUserId
-      );
-
-      setJobs((prevJobs) =>
-        prevJobs
-          .map((job) => {
-            if (job._id?.toString() === normalizedJobId) {
-              return normalizedJob;
-            }
-
-            if (job.repostOf?._id?.toString() === normalizedJobId) {
-              if (
-                job.postedBy?._id?.toString() === currentUserId &&
-                !hasCurrentUserRepost
-              ) {
-                return null;
-              }
-
-              return {
-                ...job,
-                repostOf: normalizedJob,
-              };
-            }
-
-            return job;
-          })
-          .filter((job) => job)
-      );
+      await API.patch(`/jobs/${sourceJobId}/repost`);
+      await fetchJobs();
     } catch (err) {
       await fetchJobs();
       showToast(err.response?.data?.message || "Unable to repost", "error");
@@ -948,7 +916,7 @@ const Dashboard = () => {
             title: "HireHub post",
             text: shareText,
           });
-        } catch (shareError) {
+        } catch {
           // user may cancel native share; notification/share state is already updated
         }
       } else if (navigator.clipboard?.writeText) {
@@ -968,11 +936,35 @@ const Dashboard = () => {
   const targetCommentId = notificationParams.get("comment") || "";
   const targetReplyId = notificationParams.get("reply") || "";
   const isNotificationPostView = Boolean(targetPostId);
+  const repostLookup = useMemo(() => {
+    const lookup = new Map();
+
+    jobs.forEach((job) => {
+      const sourceId = job.repostOf?._id?.toString();
+      const repostId = job._id?.toString();
+      const repostOwnerId = job.postedBy?._id?.toString();
+
+      if (!sourceId || !repostId || repostOwnerId !== currentUserId) {
+        return;
+      }
+
+      lookup.set(sourceId, repostId);
+    });
+
+    return lookup;
+  }, [jobs, currentUserId]);
 
   const filteredJobs = jobs.filter((job) => {
     const sourceJobId = (job.repostOf?._id || job._id)?.toString();
+    const directJobId = job._id?.toString();
+    const hasDirectTargetMatch = targetPostId
+      ? jobs.some((entry) => entry._id?.toString() === targetPostId)
+      : false;
 
-    if (targetPostId && sourceJobId !== targetPostId) {
+    if (
+      targetPostId &&
+      (hasDirectTargetMatch ? directJobId !== targetPostId : sourceJobId !== targetPostId)
+    ) {
       return false;
     }
 
@@ -1031,6 +1023,7 @@ const Dashboard = () => {
     navigate(`/messages/${userId}`);
   };
   return (
+    <>
     <div className="dashboard-page">
       {toast ? (
         <div className={`app-toast app-toast-${toast.type}`}>
@@ -1122,9 +1115,11 @@ const Dashboard = () => {
 	                    onReplyLike={handleReplyLike}
 	                    onRepost={handleRepost}
 	                    onShare={handleShare}
-	                    onMessageUser={handleMessageUser}
-	                    onToggleFollow={toggleFollow}
-	                    followingIds={following}
+                    onMessageUser={handleMessageUser}
+                    onToggleFollow={toggleFollow}
+                    followingIds={following}
+                    repostTargetId={repostLookup.get((job.repostOf?._id || job._id)?.toString()) || ""}
+                    onOpenPost={(postId) => navigate(`/dashboard?post=${postId}`)}
                       forceOpenComments={Boolean(targetCommentId || targetReplyId)}
                       highlightedCommentId={targetCommentId}
                       highlightedReplyId={targetReplyId}
@@ -1136,53 +1131,19 @@ const Dashboard = () => {
 
           {!isNotificationPostView ? (
             <div className="dashboard-right-column">
-              <div className="jobList-flex dashboard-suggestions-card">
-                <div className="dashboard-section-header">
-                  <div>
-                    <h2>Suggested People</h2>
-                    <p>Discover new members you may want to connect with.</p>
-                  </div>
-                </div>
-                {suggestedUsers.length === 0 ? (
-                  <div className="dashboard-empty">No new people to suggest right now</div>
-                ) : (
-                  suggestedUsers.map((person) => (
-                    <div key={`suggested-${person._id}`} className="suggested-user-item">
-                      <button
-                        type="button"
-                        className="suggested-user-profile"
-                        onClick={() => handleOpenProfile(person._id)}
-                      >
-                        {renderAvatar(
-                          person.name || "Unknown",
-                          person.profileImage,
-                          "search-dropdown-avatar"
-                        )}
-                        <div className="suggested-user-copy">
-                          <div className="suggested-user-name">{person.name || "Unknown"}</div>
-                          <div className="suggested-user-meta">
-                            {person.role || person.jobTitle || "New HireHub member"}
-                          </div>
-                        </div>
-                      </button>
-                      <div className="suggested-user-actions">
-                        <button
-                          type="button"
-                          className="suggested-follow-btn"
-                          onClick={() => toggleFollow(person._id)}
-                        >
-                          {following.includes(person._id) ? "Following" : "Follow"}
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+              <DashboardSuggestedPeople
+                suggestedUsers={suggestedUsers}
+                following={following}
+                renderAvatar={renderAvatar}
+                onOpenProfile={handleOpenProfile}
+                onToggleFollow={toggleFollow}
+              />
             </div>
           ) : null}
         </div>
       </div> 
     </div>
+    </>
   );
 };
 

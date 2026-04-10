@@ -12,6 +12,10 @@ import {
 import API from "../../services/api";
 import "../Dashboard/dashboard.css";
 import AppTopbar from "../Navbar/AppTopbar";
+import MessagesConversationThread from "./MessagesConversationThread";
+import MessagesDeleteModal from "./MessagesDeleteModal";
+import MessagesLoader from "./MessagesLoader";
+import MessagesPanelHeader from "./MessagesPanelHeader";
 import { connectSocket, getSocket } from "../../services/socket";
 import { logoutUser } from "../../utils/session";
 import { getCurrentUserId, renderAvatar } from "../../utils/userHelpers";
@@ -78,15 +82,16 @@ const formatMessageTimestamp = (value, now = Date.now()) => {
   const startOfToday = new Date(
     currentDate.getFullYear(),
     currentDate.getMonth(),
-    currentDate.getDate()
+    currentDate.getDate(),
   );
   const startOfMessageDay = new Date(
     date.getFullYear(),
     date.getMonth(),
-    date.getDate()
+    date.getDate(),
   );
   const dayDiff = Math.round(
-    (startOfToday.getTime() - startOfMessageDay.getTime()) / (1000 * 60 * 60 * 24)
+    (startOfToday.getTime() - startOfMessageDay.getTime()) /
+      (1000 * 60 * 60 * 24),
   );
 
   if (dayDiff === 0) {
@@ -128,15 +133,16 @@ const formatMessageDayLabel = (value, now = Date.now()) => {
   const startOfToday = new Date(
     currentDate.getFullYear(),
     currentDate.getMonth(),
-    currentDate.getDate()
+    currentDate.getDate(),
   );
   const startOfMessageDay = new Date(
     date.getFullYear(),
     date.getMonth(),
-    date.getDate()
+    date.getDate(),
   );
   const dayDiff = Math.round(
-    (startOfToday.getTime() - startOfMessageDay.getTime()) / (1000 * 60 * 60 * 24)
+    (startOfToday.getTime() - startOfMessageDay.getTime()) /
+      (1000 * 60 * 60 * 24),
   );
 
   if (dayDiff === 0) return "Today";
@@ -166,8 +172,10 @@ const Messages = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [isConversationLoading, setIsConversationLoading] = useState(false);
   const [text, setText] = useState("");
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const [typingUserId, setTypingUserId] = useState("");
   const [openMenuId, setOpenMenuId] = useState("");
   const [editingMessageId, setEditingMessageId] = useState("");
@@ -201,11 +209,12 @@ const Messages = () => {
           })
           .filter(
             (conversation) =>
-              conversation.user?._id !== targetUserId || Boolean(conversation.lastMessage)
-          )
+              conversation.user?._id !== targetUserId ||
+              Boolean(conversation.lastMessage),
+          ),
       );
     },
-    []
+    [],
   );
 
   const upsertConversation = useCallback(
@@ -222,7 +231,7 @@ const Messages = () => {
 
       setConversations((prev) => {
         const filtered = prev.filter(
-          (conversation) => conversation.user?._id !== otherUserId
+          (conversation) => conversation.user?._id !== otherUserId,
         );
         const hasUnread = senderId !== currentUserId && otherUserId !== userId;
 
@@ -230,7 +239,7 @@ const Messages = () => {
           {
             user: {
               ...(filtered.find(
-                (conversation) => conversation.user?._id === otherUserId
+                (conversation) => conversation.user?._id === otherUserId,
               )?.user || {}),
               ...(otherUser || {}),
             },
@@ -242,26 +251,19 @@ const Messages = () => {
         ];
       });
     },
-    [currentUserId, userId]
+    [currentUserId, userId],
   );
-
-  const fetchConversations = async () => {
-    try {
-      const res = await API.get("/messages");
-      setConversations(res.data || []);
-    } catch (error) {
-      console.log(error);
-    }
-  };
 
   const fetchConversation = async (targetUserId) => {
     if (!targetUserId) {
+      setIsConversationLoading(false);
       setSelectedUser(null);
       setMessages([]);
       return;
     }
 
     try {
+      setIsConversationLoading(true);
       const res = await API.get(`/messages/${targetUserId}`);
       setSelectedUser(res.data.user);
       setMessages(res.data.messages || []);
@@ -269,15 +271,29 @@ const Messages = () => {
         prev.map((conversation) =>
           conversation.user._id === targetUserId
             ? { ...conversation, hasUnread: false }
-            : conversation
-        )
+            : conversation,
+        ),
       );
     } catch (error) {
       console.log(error);
+    } finally {
+      setIsConversationLoading(false);
     }
   };
 
   useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        setIsPageLoading(true);
+        const res = await API.get("/messages");
+        setConversations(res.data || []);
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setIsPageLoading(false);
+      }
+    };
+
     fetchConversations();
   }, []);
 
@@ -296,6 +312,11 @@ const Messages = () => {
     return () => clearInterval(timer);
   }, []);
 
+  const handleCancelEdit = useCallback(() => {
+    setEditingMessageId("");
+    setText("");
+  }, []);
+
   useEffect(() => {
     const socket = connectSocket();
 
@@ -312,12 +333,12 @@ const Messages = () => {
       if (otherUserId === userId) {
         setMessages((prev) => {
           const existingIndex = prev.findIndex(
-            (existingMessage) => existingMessage._id === message._id
+            (existingMessage) => existingMessage._id === message._id,
           );
 
           if (existingIndex >= 0) {
             return prev.map((existingMessage) =>
-              existingMessage._id === message._id ? message : existingMessage
+              existingMessage._id === message._id ? message : existingMessage,
             );
           }
 
@@ -340,22 +361,24 @@ const Messages = () => {
       lastSeen,
     }) => {
       setSelectedUser((prev) =>
-        prev && prev._id === changedUserId ? { ...prev, isOnline, lastSeen } : prev
+        prev && prev._id === changedUserId
+          ? { ...prev, isOnline, lastSeen }
+          : prev,
       );
 
       setConversations((prev) =>
         prev.map((conversation) =>
           conversation.user?._id === changedUserId
             ? {
-              ...conversation,
-              user: {
-                ...conversation.user,
-                isOnline,
-                lastSeen,
-              },
-            }
-            : conversation
-        )
+                ...conversation,
+                user: {
+                  ...conversation.user,
+                  isOnline,
+                  lastSeen,
+                },
+              }
+            : conversation,
+        ),
       );
     };
 
@@ -371,7 +394,9 @@ const Messages = () => {
       if (targetConversationUserId !== userId) return;
 
       setMessages((prev) => {
-        const nextMessages = prev.filter((message) => message._id !== messageId);
+        const nextMessages = prev.filter(
+          (message) => message._id !== messageId,
+        );
         syncConversationWithMessages(userId, nextMessages);
         return nextMessages;
       });
@@ -392,7 +417,13 @@ const Messages = () => {
       socket.off("message:typing", handleTyping);
       socket.off("message:delete", handleDeletedMessage);
     };
-  }, [currentUserId, editingMessageId, syncConversationWithMessages, upsertConversation, userId]);
+  }, [
+    currentUserId,
+    editingMessageId,
+    syncConversationWithMessages,
+    upsertConversation,
+    userId,
+  ]);
 
   useEffect(() => {
     if (typingUserId && typingUserId !== userId) {
@@ -443,7 +474,7 @@ const Messages = () => {
 
         if (exists) {
           return prev.map((message) =>
-            message._id === res.data._id ? res.data : message
+            message._id === res.data._id ? res.data : message,
           );
         }
 
@@ -494,11 +525,6 @@ const Messages = () => {
     setOpenMenuId("");
   };
 
-  const handleCancelEdit = () => {
-    setEditingMessageId("");
-    setText("");
-  };
-
   const handleOpenDeleteConfirm = (messageId) => {
     setDeleteTargetId(messageId);
     setOpenMenuId("");
@@ -519,7 +545,7 @@ const Messages = () => {
 
       setMessages((prev) => {
         const nextMessages = prev.map((message) =>
-          message._id === messageId ? res.data : message
+          message._id === messageId ? res.data : message,
         );
         syncConversationWithMessages(userId, nextMessages);
         return nextMessages;
@@ -536,7 +562,9 @@ const Messages = () => {
       await API.delete(`/messages/item/${messageId}`);
 
       setMessages((prev) => {
-        const nextMessages = prev.filter((message) => message._id !== messageId);
+        const nextMessages = prev.filter(
+          (message) => message._id !== messageId,
+        );
         syncConversationWithMessages(userId, nextMessages);
         return nextMessages;
       });
@@ -556,6 +584,8 @@ const Messages = () => {
     navigate("/dashboard");
   };
 
+  const showLoader = isPageLoading || isConversationLoading;
+
   return (
     <div className="dashboard-page messages-page">
       <AppTopbar
@@ -570,88 +600,63 @@ const Messages = () => {
         onUserSelect={(targetUserId) => navigate(`/profile/${targetUserId}`)}
         onLogout={handleLogout}
       />
-      <div className={`messages-shell ${userId ? "has-selected-conversation" : ""}`}>
+      <div
+        className={`messages-shell ${userId ? "has-selected-conversation" : ""} ${
+          showLoader ? "is-loading" : ""
+        }`}
+      >
         <aside className="messages-sidebar">
           <div className="messages-sidebar-header">Messages</div>
-	          {conversations.length ? (
-	            conversations.map((conversation) => (
-	              <div
-	                key={conversation.user._id}
-	                className={`messages-thread ${conversation.user._id === userId ? "is-active" : ""
-	                  } ${conversation.hasUnread ? "is-unread" : ""}`}
-	              >
-	                <button
-	                  type="button"
-	                  className="messages-avatar-button"
-	                  onClick={() => navigate(`/profile/${conversation.user._id}`)}
-	                >
-	                  {renderAvatar(
-	                    conversation.user.name,
-	                    conversation.user.profileImage,
-	                    "messages-avatar"
-	                  )}
-	                </button>
-	                <button
-	                  type="button"
-	                  className="messages-thread-main"
-	                  onClick={() => navigate(`/messages/${conversation.user._id}`)}
-	                >
-	                  <div className="messages-thread-copy">
-	                  <div className="messages-thread-row">
-	                    <div className="messages-thread-name">{conversation.user.name}</div>
-	                    <div className="messages-thread-time">
-	                      {formatMessageTimestamp(conversation.updatedAt, now)}
-	                    </div>
-	                  </div>
-	                  <div className="messages-thread-text">{conversation.lastMessage}</div>
-	                  </div>
-	                </button>
-	              </div>
-	            ))
-	          ) : (
-            <div className="messages-empty">No conversations yet.</div>
+          {conversations.length ? (
+            conversations.map((conversation) => (
+              <MessagesConversationThread
+                key={conversation.user._id}
+                conversation={conversation}
+                userId={userId}
+                now={now}
+                navigate={navigate}
+                renderAvatar={renderAvatar}
+                formatMessageTimestamp={formatMessageTimestamp}
+              />
+            ))
+          ) : (
+            <div></div>
           )}
         </aside>
 
         <section className="messages-panel">
           {selectedUser ? (
             <>
-              <div className="messages-panel-header">
-                <button
-                  className="messages-back-button"
-                  onClick={() => navigate("/messages")}
-                  aria-label="Back to conversations"
-                >
-                  ←
-                </button>
-                <div className="messages-user-presence">
-                  {renderAvatar(selectedUser.name, selectedUser.profileImage, "messages-avatar")}
-                  <span
-                    className={`messages-status-dot ${isUserOnline(selectedUser) ? "is-online" : ""
-                      }`}
-                  />
-                </div>
-                <div className="active-shell">
-                  <div className="messages-thread-name">{selectedUser.name}</div>
-                  <div className="messages-thread-text messages-status-text">
-                    {formatPresenceText(selectedUser, now, typingUserId === selectedUser._id)}
-                  </div>
-                </div>
-              </div>
+              <MessagesPanelHeader
+                selectedUser={selectedUser}
+                now={now}
+                typingUserId={typingUserId}
+                navigate={navigate}
+                renderAvatar={renderAvatar}
+                isUserOnline={isUserOnline}
+                formatPresenceText={formatPresenceText}
+              />
 
               <div className="messages-list" ref={messagesListRef}>
                 {messages.length ? (
                   messages.map((message, index) => {
                     const isOwn = message.sender?._id !== selectedUser._id;
-                    const deliveryState = getMessageDeliveryState(message, selectedUser);
+                    const deliveryState = getMessageDeliveryState(
+                      message,
+                      selectedUser,
+                    );
                     const isEditing = editingMessageId === message._id;
                     const previousMessage = messages[index - 1];
-                    const currentDayLabel = formatMessageDayLabel(message.createdAt, now);
+                    const currentDayLabel = formatMessageDayLabel(
+                      message.createdAt,
+                      now,
+                    );
                     const previousDayLabel = formatMessageDayLabel(
                       previousMessage?.createdAt,
-                      now
+                      now,
                     );
-                    const shouldShowDayLabel = currentDayLabel !== previousDayLabel;
+                    const shouldShowDayLabel =
+                      currentDayLabel !== previousDayLabel;
 
                     return (
                       <div
@@ -663,7 +668,9 @@ const Messages = () => {
                             <span>{currentDayLabel}</span>
                           </div>
                         ) : null}
-                        <div className={`message-bubble ${isOwn ? "is-own" : ""}`}>
+                        <div
+                          className={`message-bubble ${isOwn ? "is-own" : ""}`}
+                        >
                           {isOwn ? (
                             <div
                               className="message-bubble-menu-shell"
@@ -675,7 +682,7 @@ const Messages = () => {
                                 aria-label="Message options"
                                 onClick={() =>
                                   setOpenMenuId((prev) =>
-                                    prev === message._id ? "" : message._id
+                                    prev === message._id ? "" : message._id,
                                   )
                                 }
                               >
@@ -693,7 +700,9 @@ const Messages = () => {
                                   <button
                                     type="button"
                                     className="is-danger"
-                                    onClick={() => handleOpenDeleteConfirm(message._id)}
+                                    onClick={() =>
+                                      handleOpenDeleteConfirm(message._id)
+                                    }
                                   >
                                     <Trash2 size={14} />
                                     Delete
@@ -706,7 +715,9 @@ const Messages = () => {
                           {isEditing ? null : (
                             <>
                               <div className="message-text">{message.text}</div>
-                              <div className={`message-meta-row ${isOwn ? "is-own" : ""}`}>
+                              <div
+                                className={`message-meta-row ${isOwn ? "is-own" : ""}`}
+                              >
                                 {message.edited ? (
                                   <span className="message-edited">Edited</span>
                                 ) : null}
@@ -718,11 +729,15 @@ const Messages = () => {
                                     className={`message-status is-${deliveryState}`}
                                     aria-label={`Message ${deliveryState}`}
                                   >
-                                    {deliveryState === "sent" ? <Check size={14} /> : null}
+                                    {deliveryState === "sent" ? (
+                                      <Check size={14} />
+                                    ) : null}
                                     {deliveryState === "delivered" ? (
                                       <CheckCheck size={14} />
                                     ) : null}
-                                    {deliveryState === "seen" ? <CheckCheck size={14} /> : null}
+                                    {deliveryState === "seen" ? (
+                                      <CheckCheck size={14} />
+                                    ) : null}
                                   </span>
                                 ) : null}
                               </div>
@@ -735,18 +750,17 @@ const Messages = () => {
                 ) : (
                   <div className="messages-empty">Start the conversation.</div>
                 )}
-                {typingUserId === selectedUser._id ? (
-                  <div className="message-typing-bubble" aria-label="Typing">
-                    Typing...
-                  </div>
-                ) : null}
               </div>
 
               <form className="messages-form" onSubmit={handleSendMessage}>
                 {editingMessageId ? (
                   <div className="messages-edit-banner">
                     <div className="messages-edit-copy">Editing message</div>
-                    <button type="button" onClick={handleCancelEdit} aria-label="Cancel edit">
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      aria-label="Cancel edit"
+                    >
                       <X size={16} />
                     </button>
                   </div>
@@ -754,7 +768,11 @@ const Messages = () => {
                 <input
                   ref={composerInputRef}
                   type="text"
-                  placeholder={editingMessageId ? "Edit message" : `Message ${selectedUser.name}`}
+                  placeholder={
+                    editingMessageId
+                      ? "Edit message"
+                      : `Message ${selectedUser.name}`
+                  }
                   value={text}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -792,35 +810,13 @@ const Messages = () => {
             </div>
           )}
         </section>
+        {showLoader ? <MessagesLoader /> : null}
       </div>
-      {deleteTargetId ? (
-        <div
-          className="message-delete-modal-backdrop"
-          onClick={handleCloseDeleteConfirm}
-        >
-          <div
-            className="message-delete-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="message-delete-title">Delete message?</div>
-            <div className="message-delete-copy">
-              Are you sure you want to delete this message?
-            </div>
-            <div className="message-delete-actions">
-              <button type="button" onClick={handleCloseDeleteConfirm}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="is-danger"
-                onClick={() => handleDeleteMessage(deleteTargetId)}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <MessagesDeleteModal
+        deleteTargetId={deleteTargetId}
+        onClose={handleCloseDeleteConfirm}
+        onDelete={handleDeleteMessage}
+      />
     </div>
   );
 };

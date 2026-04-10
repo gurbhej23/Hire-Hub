@@ -20,7 +20,12 @@ const buildUserResponse = async (userId) => {
     .populate("postedBy", "name email profileImage role location")
     .populate("comments.user", "name profileImage")
     .populate("comments.replies.user", "name profileImage")
-    .populate("repostOf");
+    .populate({
+      path: "repostOf",
+      populate: {
+        path: "postedBy comments.user comments.replies.user",
+      },
+    });
 
   const userObject = user.toObject();
   userObject.jobs = jobs;

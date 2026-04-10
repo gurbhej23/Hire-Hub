@@ -206,7 +206,7 @@ const Navbar = () => {
 	          >
 	            <MessageSquareMore />
 	            {unreadMessageCount > 0 ? (
-	              <span className="notification-badge">{unreadMessageCount}</span>
+	              <span className="notification-badge"></span>
 	            ) : null}
 	          </button>
 	        </li>
@@ -220,7 +220,7 @@ const Navbar = () => {
 	          >
 	            <Bell />
 	            {unreadCount > 0 ? (
-	              <span className="notification-badge">{unreadCount}</span>
+	              <span className="notification-badge"></span>
 	            ) : null}
 	          </button>
 	        </li>
