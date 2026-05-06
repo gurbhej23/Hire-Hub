@@ -50,7 +50,11 @@ const Register = () => {
         navigate("/login");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed. Try again.");
+      setError(
+        err.userMessage ||
+          err.response?.data?.message ||
+          "Registration failed. Try again."
+      );
     }
   };
 

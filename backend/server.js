@@ -13,18 +13,26 @@ import { initSockets } from "./socket/index.js";
 dotenv.config();
 const app = express();
 const server = http.createServer(app);
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://192.168.29.41:3000",
-  "https://hire-hub-blush.vercel.app",
-  "https://hire-hub-e11k.onrender.com",
-].filter(Boolean);
+const allowedOrigins = new Set(
+  [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://192.168.29.41:3000",
+    "https://hire-hub-blush.vercel.app",
+    "https://hire-hub-e11k.onrender.com",
+  ].filter(Boolean)
+);
+
+const isLocalDevOrigin = (origin) =>
+  /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.has(origin) || isLocalDevOrigin(origin)) {
       return callback(null, true);
     }
 
@@ -34,6 +42,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(express.json({ limit: "15mb" }));
 
 app.use("/api/auth", authRoutes);

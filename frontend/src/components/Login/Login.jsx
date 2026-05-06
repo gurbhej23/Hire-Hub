@@ -36,6 +36,7 @@ const Login = ({ setUser }) => {
       }
     } catch (err) {
       const message =
+        err.userMessage ||
         err.response?.data?.message ||
         (err.request
           ? "Cannot reach the server. Check that the backend is running and CORS allows this frontend URL."
