@@ -82,16 +82,41 @@ const Navbar = () => {
   };
 
   useEffect(() => {
-    fetchNotifications();
-    fetchConversations();
-    fetchUnreadMessages();
-    const intervalId = setInterval(() => {
-      fetchNotifications();
-      fetchConversations();
-      fetchUnreadMessages();
-    }, 10000);
+    if (!localStorage.getItem("token")) return undefined;
 
-    return () => clearInterval(intervalId);
+    let isBusy = false;
+    const refreshNavbarData = async () => {
+      if (isBusy || document.visibilityState === "hidden") return;
+
+      isBusy = true;
+      try {
+        await Promise.all([
+          fetchNotifications(),
+          fetchConversations(),
+          fetchUnreadMessages(),
+        ]);
+      } finally {
+        isBusy = false;
+      }
+    };
+
+    refreshNavbarData();
+    const intervalId = setInterval(() => {
+      refreshNavbarData();
+    }, 30000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshNavbarData();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
